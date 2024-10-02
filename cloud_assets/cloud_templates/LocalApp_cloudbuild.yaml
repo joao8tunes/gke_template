@@ -1,0 +1,59 @@
+steps:
+  # Step 1: Retrieve cluster credentials to interact with the Kubernetes cluster
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: retrieve-cluster-credentials
+    args:
+      - 'container'
+      - 'clusters'
+      - 'get-credentials'
+      - '$_CLUSTER_NAME'
+      - '--region'
+      - '$_CLUSTER_REGION'
+
+  # Step 2: Build and push the Docker image to Google Container Registry
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: build-push-docker-image
+    args: ['builds', 'submit', '--tag', 'gcr.io/$PROJECT_ID/$_APP_NAME:latest']
+
+  # Step 3: Delete the existing Kubernetes deployment if it exists, ignoring any errors if not found
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: delete-old-k8s-deployment
+    args:
+      - 'delete'
+      - 'deployment'
+      - '$_DEPLOY_NAME'
+      - '--namespace=$_NAMESPACE'
+      - '--ignore-not-found'
+
+  # Step 4: Apply the new Kubernetes deployment configuration
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: apply-new-k8s-deployment
+    args:
+      - 'apply'
+      - '-f'
+      - 'kubernetes/deployment.yaml'
+      - '--namespace=$_NAMESPACE'
+
+  # Step 5: Apply the Horizontal Pod Autoscaler configuration
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: apply-hpa
+    args:
+      - 'apply'
+      - '-f'
+      - 'kubernetes/hpa.yaml'
+      - '--namespace=$_NAMESPACE'
+
+options:
+  # Set environment variables for cluster name and region, and configure logging options
+  env:
+    - 'CLOUDSDK_CONTAINER_CLUSTER=$_CLUSTER_NAME'
+    - 'CLOUDSDK_COMPUTE_REGION=$_CLUSTER_REGION'
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  # Variable substitutions for namespace, cluster name, cluster region, app name, and deployment name
+  _NAMESPACE: '<VAR_GKE_NAMESPACE>'
+  _CLUSTER_NAME: '<VAR_GKE_CLUSTER_NAME>'
+  _CLUSTER_REGION: '<VAR_GKE_CLUSTER_REGION>'
+  _APP_NAME: '<VAR_APP_NAME>'
+  _DEPLOY_NAME: '<VAR_DEPLOY_NAME>'

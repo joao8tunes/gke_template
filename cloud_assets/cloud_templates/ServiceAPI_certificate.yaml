@@ -1,0 +1,8 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: "<VAR_CERT_NAME>"
+  namespace: "<VAR_GKE_NAMESPACE>"
+spec:
+  domains:
+  - "<VAR_APP_NAME>.endpoints.<VAR_PROJECT_ID>.cloud.goog"

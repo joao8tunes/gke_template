@@ -1,0 +1,153 @@
+steps:
+  # Step 1: Retrieve cluster credentials to interact with the Kubernetes cluster
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: retrieve-cluster-credentials
+    args:
+      - 'container'
+      - 'clusters'
+      - 'get-credentials'
+      - '$_CLUSTER_NAME'
+      - '--region'
+      - '$_CLUSTER_REGION'
+
+  # Step 2: Generate private key
+  - name: 'ubuntu'
+    id: generate-private-key
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        mkdir -p /workspace/certs && \
+        apt-get update && apt-get install -y openssl && \
+        openssl genpkey -algorithm RSA -out /workspace/certs/private.key -pkeyopt rsa_keygen_bits:2048
+
+  # Step 3: Generate CSR (Certificate Signing Request)
+  - name: 'ubuntu'
+    id: generate-csr
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        apt-get update && apt-get install -y openssl && \
+        openssl req -new -key /workspace/certs/private.key -out /workspace/certs/csr.csr -subj "/CN=<VAR_APP_NAME>.endpoints.<VAR_PROJECT_ID>.cloud.goog/O=<VAR_APP_NAME>"
+
+  # Step 4: Generate self-signed certificate
+  - name: 'ubuntu'
+    id: generate-cert
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        apt-get update && apt-get install -y openssl && \
+        openssl x509 -req -days 3650 -in /workspace/certs/csr.csr -signkey /workspace/certs/private.key -out /workspace/certs/cert.crt
+
+  # Step 5: Check if the TLS Secret exists and delete if it does
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: check-delete-tls-secret
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if kubectl get secret <VAR_TLS_NAME> -n $_NAMESPACE > /dev/null 2>&1; then
+          kubectl delete secret <VAR_TLS_NAME> -n $_NAMESPACE
+        fi
+
+  # Step 6: Create the TLS Secret
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: create-tls-secret
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        kubectl create secret tls <VAR_TLS_NAME> \
+          --cert=/workspace/certs/cert.crt \
+          --key=/workspace/certs/private.key \
+          -n $_NAMESPACE
+
+  # Step 7: Build and push the Docker image to Google Container Registry
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: build-push-docker-image
+    args:
+      - 'builds'
+      - 'submit'
+      - '--tag'
+      - 'gcr.io/$PROJECT_ID/$_APP_NAME:latest'
+
+  # Step 8: Apply the Kubernetes service configuration
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: apply-k8s-service
+    args:
+      - 'apply'
+      - '-f'
+      - 'kubernetes/service.yaml'
+      - '--namespace=$_NAMESPACE'
+
+  # Step 9: Apply the managed certificate configuration
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: apply-managed-certificate
+    args:
+      - 'apply'
+      - '-f'
+      - 'kubernetes/certificate.yaml'
+      - '--namespace=$_NAMESPACE'
+
+  # Step 10: Apply the ingress configuration with TLS
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: apply-ingress-config
+    args:
+      - 'apply'
+      - '-f'
+      - 'kubernetes/ingress.yaml'
+      - '--namespace=$_NAMESPACE'
+
+  # Step 11: Delete the existing Kubernetes deployment if it exists, ignoring any errors if not found
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: delete-old-k8s-deployment
+    args:
+      - 'delete'
+      - 'deployment'
+      - '$_DEPLOY_NAME'
+      - '--namespace=$_NAMESPACE'
+      - '--ignore-not-found'
+
+  # Step 12: Apply the new Kubernetes deployment configuration
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: apply-new-k8s-deployment
+    args:
+      - 'apply'
+      - '-f'
+      - 'kubernetes/deployment.yaml'
+      - '--namespace=$_NAMESPACE'
+
+  # Step 13: Apply the Horizontal Pod Autoscaler configuration
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: apply-hpa
+    args:
+      - 'apply'
+      - '-f'
+      - 'kubernetes/hpa.yaml'
+      - '--namespace=$_NAMESPACE'
+
+  # Step 14: Deploy the API service using Google Cloud Endpoints
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: deploy-api-endpoint
+    args:
+      - 'endpoints'
+      - 'services'
+      - 'deploy'
+      - 'kubernetes/endpoint.yaml'
+
+options:
+  # Set environment variables for cluster name and region, and configure logging options
+  env:
+    - 'CLOUDSDK_CONTAINER_CLUSTER=$_CLUSTER_NAME'
+    - 'CLOUDSDK_COMPUTE_REGION=$_CLUSTER_REGION'
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  # Variable substitutions for namespace, cluster name, cluster region, app name, and deployment name
+  _NAMESPACE: '<VAR_GKE_NAMESPACE>'
+  _CLUSTER_NAME: '<VAR_GKE_CLUSTER_NAME>'
+  _CLUSTER_REGION: '<VAR_GKE_CLUSTER_REGION>'
+  _APP_NAME: '<VAR_APP_NAME>'
+  _DEPLOY_NAME: '<VAR_DEPLOY_NAME>'

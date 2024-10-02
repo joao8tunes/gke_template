@@ -1,0 +1,7 @@
+coloredlogs
+db-dtypes
+Flask[async]
+flask_socketio
+google-cloud-logging
+gunicorn
+pyyaml

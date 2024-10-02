@@ -1,0 +1,35 @@
+swagger: "2.0"
+
+info:
+  # Title of the API
+  title: "<VAR_APP_TITLE>"
+
+  # Description of the API
+  description: "<VAR_APP_DESCRIPTION>"
+
+  # Version of the API
+  version: "<VAR_APP_VERSION>"
+
+host: "<VAR_APP_NAME>.endpoints.<VAR_PROJECT_ID>.cloud.goog"
+
+x-google-endpoints:
+- name: "<VAR_APP_NAME>.endpoints.<VAR_PROJECT_ID>.cloud.goog"
+  # Static IP address for the API endpoint
+  target: "<VAR_STATIC_IP>"
+
+paths:
+  /health-check:
+    get:
+      # Summary of the GET request for the health check endpoint
+      summary: "Health check"
+
+      # Description of what the health check endpoint does
+      description: "Health check endpoint"
+
+      # Unique operation ID for the health check
+      operationId: "healthCheck"
+
+      responses:
+        200:
+          # Description of the response for a successful health check
+          description: "OK"

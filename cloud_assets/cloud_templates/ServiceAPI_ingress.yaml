@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "<VAR_INGRESS_NAME>"
+  namespace: "<VAR_GKE_NAMESPACE>"
+  annotations:
+    networking.gke.io/managed-certificates: "<VAR_CERT_NAME>"
+    ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  tls:
+  - hosts:
+    - "<VAR_APP_NAME>.endpoints.<VAR_PROJECT_ID>.cloud.goog"
+    secretName: "<VAR_TLS_NAME>"
+  rules:
+  - host: "<VAR_APP_NAME>.endpoints.<VAR_PROJECT_ID>.cloud.goog"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: "<VAR_SERVICE_NAME>"
+            port:
+              number: 80

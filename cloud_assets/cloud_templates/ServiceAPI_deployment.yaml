@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # Deployment name based on variable
+  name: "<VAR_DEPLOY_NAME>"
+
+  # Namespace where the deployment will be created
+  namespace: "<VAR_GKE_NAMESPACE>"
+
+  labels:
+    # Label to identify the application
+    app: "<VAR_APP_NAME>"
+
+spec:
+  # Number of replicas for the deployment
+  replicas: 1
+
+  selector:
+    matchLabels:
+      # Selector to match the pod labels
+      app: "<VAR_APP_NAME>"
+
+  template:
+    metadata:
+      labels:
+        # Label applied to the pods created by this deployment
+        app: "<VAR_APP_NAME>"
+
+    spec:
+      # Service account for the pod
+      serviceAccountName: "<VAR_GKE_SERVICE_ACCOUNT_NAME>"
+
+      containers:
+      - name: "<VAR_APP_NAME>"
+
+        # Docker image to use, with tag 'latest'
+        image: "gcr.io/<VAR_PROJECT_ID>/<VAR_APP_NAME>:latest"
+
+        ports:
+        - containerPort: 8080
+
+        resources:
+          requests:
+            # Minimum memory requested by the container
+            memory: "256Mi"
+            # Minimum CPU requested by the container
+            cpu: "500m"
+
+          limits:
+            # Maximum memory the container can use
+            memory: "512Mi"
+            # Maximum CPU the container can use
+            cpu: "1000m"

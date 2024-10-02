@@ -1,0 +1,48 @@
+system:
+    # Logging level for the application. Options include:
+    # - "NOTSET": No logging level set
+    # - "DEBUG": Detailed information, typically for diagnosing issues
+    # - "INFO": General information about application events
+    # - "WARNING": Indications of potential issues
+    # - "ERROR": Errors that prevent a function from working
+    # - "CRITICAL": Severe errors that require immediate attention
+    log_level: "DEBUG"
+
+
+cloud:
+    # Project ID for the Google Cloud project - Required
+    project_id: "my-project"  # RFC 1123
+
+    # Name of the GKE cluster - Required
+    gke_cluster_name: "gke-cluster-my-project"  # RFC 1123
+
+    # Region where the GKE cluster is located - Required
+    gke_cluster_region: "southamerica-east1"  # RFC 1123
+
+    # Repository name for the application - Required
+    repo_name: "my-app"
+
+    # Name of the application - Required
+    app_name: "app-example"  # RFC 1123
+
+    # Namespace for Google Kubernetes Engine (GKE) - Optional
+    gke_namespace: "app-example"  # RFC 1123
+
+    # Service account name for GKE - Optional
+    gke_service_account_name: "app-example-gke-sa"  # RFC 1123
+
+    # IAM service account name - Optional
+    iam_service_account_name: "app-example-iam-sa"  # RFC 1123
+
+    # Title of the application - Optional
+    app_title: "App example"
+
+    # Description of the application - Optional
+    app_description: "App example"
+
+    # Version of the application - Optional
+    app_version: "1.0.0"
+
+    # Notes: A lowercase RFC 1123 label must consist of lower case alphanumeric characters or '-', and must start and end
+    # with an alphanumeric character (e.g., 'my-name', or '123-abc'). Regex used for validation is
+    # '[a-z0-9]([-a-z0-9]*[a-z0-9])?'.
